@@ -9,28 +9,137 @@
 <body>
     <div class="container">
         <h1>AI Detection Dashboard</h1>
-        <p class="subtitle">Paste your text below to analyze it</p>
+        <p class="subtitle">Paste your text below to detect likely AI-generated content.</p>
 
         <form id="analyze-form">
             <label for="input-text" class="sr-only">Text to analyze</label>
-            <textarea id="input-text" name="text" rows="8" placeholder="Paste your text here..."></textarea>
-            <button type="submit">Analyze</button>
+            <textarea id="input-text" name="text" rows="10" placeholder="Paste your text here..."></textarea>
+            <button id="submit-btn" type="submit">Analyze</button>
         </form>
 
+        <p id="feedback" class="feedback" hidden></p>
         <div id="result" class="result-section"></div>
     </div>
 
     <script>
-        document.getElementById("analyze-form").addEventListener("submit", function (e) {
-            e.preventDefault();
-            var text = document.getElementById("input-text").value.trim();
-            var result = document.getElementById("result");
+        var form = document.getElementById("analyze-form");
+        var textInput = document.getElementById("input-text");
+        var submitBtn = document.getElementById("submit-btn");
+        var feedback = document.getElementById("feedback");
+        var result = document.getElementById("result");
+
+        function showFeedback(message, type) {
+            feedback.textContent = message;
+            feedback.className = "feedback " + type;
+            feedback.hidden = false;
+        }
+
+        function scoreToPercent(score) {
+            if (typeof score !== "number" || Number.isNaN(score)) {
+                return "N/A";
+            }
+            var normalized = score > 1 ? score / 100 : score;
+            var clamped = Math.max(0, Math.min(1, normalized));
+            return Math.round(clamped * 100) + "%";
+        }
+
+        function toneFromLabel(label) {
+            var value = (label || "").toLowerCase();
+            if (value.indexOf("human") !== -1) return "human";
+            if (value.indexOf("mixed") !== -1 || value.indexOf("possible") !== -1) return "mixed";
+            if (value.indexOf("ai") !== -1) return "ai";
+            return "neutral";
+        }
+
+        function buildDetectorCard(title, data) {
+            var card = document.createElement("article");
+            card.className = "detector-card";
+
+            var detectorTitle = document.createElement("h3");
+            detectorTitle.className = "detector-title";
+            detectorTitle.textContent = title;
+            card.appendChild(detectorTitle);
+
+            if (!data || data.error) {
+                card.classList.add("error");
+                var errorText = document.createElement("p");
+                errorText.className = "detector-error";
+                errorText.textContent = data && data.error ? data.error : "API failed";
+                card.appendChild(errorText);
+                return card;
+            }
+
+            var score = document.createElement("p");
+            score.className = "detector-score";
+            score.textContent = scoreToPercent(data.score);
+            card.appendChild(score);
+
+            var label = typeof data.label === "string" && data.label.trim() ? data.label.trim() : "Unknown";
+            var badge = document.createElement("span");
+            badge.className = "detector-label " + toneFromLabel(label);
+            badge.textContent = label;
+            card.appendChild(badge);
+
+            return card;
+        }
+
+        function renderResults(data) {
+            result.innerHTML = "";
+            result.appendChild(buildDetectorCard("GPTZero", data.gptzero));
+            result.appendChild(buildDetectorCard("Originality.ai", data.originality));
+            result.classList.add("visible");
+        }
+
+        function hasApiError(data) {
+            return !!(
+                (data.gptzero && data.gptzero.error) ||
+                (data.originality && data.originality.error)
+            );
+        }
+
+        form.addEventListener("submit", async function (event) {
+            event.preventDefault();
+            var text = textInput.value.trim();
+
             if (!text) {
+                result.innerHTML = "";
                 result.classList.remove("visible");
+                showFeedback("Please enter text to analyze.", "error");
                 return;
             }
-            result.textContent = "Analysis pending…";
-            result.classList.add("visible");
+
+            submitBtn.disabled = true;
+            result.innerHTML = "";
+            result.classList.remove("visible");
+            showFeedback("Analyzing...", "loading");
+
+            try {
+                var response = await fetch("/analyze", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ text: text })
+                });
+
+                if (!response.ok) {
+                    throw new Error("Request failed");
+                }
+
+                var data = await response.json();
+                renderResults(data);
+                if (hasApiError(data)) {
+                    showFeedback("Some detectors failed. Showing available results.", "error");
+                } else {
+                    showFeedback("Analysis complete.", "success");
+                }
+            } catch (error) {
+                result.innerHTML = "";
+                result.classList.remove("visible");
+                showFeedback("Failed to analyze text. Please try again.", "error");
+            } finally {
+                submitBtn.disabled = false;
+            }
         });
     </script>
 </body>
