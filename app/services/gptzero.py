@@ -50,8 +50,8 @@ def _extract_label(payload: dict[str, Any]) -> str:
     raise GPTZeroAPIError("Missing classification label")
 
 
-async def check_gptzero(text: str) -> dict[str, Any]:
-    api_key = os.getenv("GPTZERO_API_KEY")
+async def check_gptzero(text: str, api_key: str | None = None) -> dict[str, Any]:
+    api_key = api_key or os.getenv("GPTZERO_API_KEY")
     if not api_key:
         raise GPTZeroAPIError("Missing GPTZERO_API_KEY")
 

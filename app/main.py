@@ -1,6 +1,6 @@
 import asyncio
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -24,25 +24,46 @@ async def home(request: Request):
 
 class AnalyzeRequest(BaseModel):
     text: str
+    gptzero_api_key: str | None = None
+    originality_api_key: str | None = None
 
 
 @app.post("/analyze")
 async def analyze(payload: AnalyzeRequest):
-    gptzero_data, originality_data = await asyncio.gather(
-        check_gptzero(payload.text),
-        check_originality(payload.text),
-        return_exceptions=True,
-    )
+    gptzero_api_key = (payload.gptzero_api_key or "").strip()
+    originality_api_key = (payload.originality_api_key or "").strip()
 
-    gptzero_result = (
-        {"error": "API failed"}
-        if isinstance(gptzero_data, (GPTZeroAPIError, Exception))
-        else gptzero_data
-    )
-    originality_result = (
-        {"error": "API failed"}
-        if isinstance(originality_data, (OriginalityAPIError, Exception))
-        else originality_data
-    )
+    if not gptzero_api_key and not originality_api_key:
+        raise HTTPException(
+            status_code=400,
+            detail="Please provide at least one API key (GPTZero or Originality.ai).",
+        )
+
+    tasks: list[tuple[str, object]] = []
+    if gptzero_api_key:
+        tasks.append(("gptzero", check_gptzero(payload.text, api_key=gptzero_api_key)))
+    if originality_api_key:
+        tasks.append(
+            ("originality", check_originality(payload.text, api_key=originality_api_key))
+        )
+
+    raw_results: dict[str, dict] = {}
+    if tasks:
+        names = [name for name, _ in tasks]
+        coroutines = [coroutine for _, coroutine in tasks]
+        responses = await asyncio.gather(*coroutines, return_exceptions=True)
+
+        for name, response in zip(names, responses):
+            if name == "gptzero" and isinstance(response, (GPTZeroAPIError, Exception)):
+                raw_results[name] = {"error": "API failed"}
+            elif name == "originality" and isinstance(
+                response, (OriginalityAPIError, Exception)
+            ):
+                raw_results[name] = {"error": "API failed"}
+            else:
+                raw_results[name] = response
+
+    gptzero_result = raw_results.get("gptzero", {"error": "API key not provided"})
+    originality_result = raw_results.get("originality", {"error": "API key not provided"})
 
     return {"gptzero": gptzero_result, "originality": originality_result}

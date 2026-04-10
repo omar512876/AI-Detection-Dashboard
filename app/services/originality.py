@@ -47,8 +47,8 @@ def _label_from_score(score: float) -> str:
     return "Mixed"
 
 
-async def check_originality(text: str) -> dict[str, Any]:
-    api_key = os.getenv("ORIGINALITY_API_KEY")
+async def check_originality(text: str, api_key: str | None = None) -> dict[str, Any]:
+    api_key = api_key or os.getenv("ORIGINALITY_API_KEY")
     if not api_key:
         raise OriginalityAPIError("Missing ORIGINALITY_API_KEY")
 

@@ -9,3 +9,7 @@ Set your GPTZero API key before running the backend:
 Set your Originality.ai API key:
 
 `ORIGINALITY_API_KEY=your_api_key_here`
+
+## Usage
+
+Enter at least one API key in the UI (GPTZero and/or Originality.ai) before clicking **Analyze**.
