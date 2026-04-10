@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any, Coroutine
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
@@ -39,7 +40,7 @@ async def analyze(payload: AnalyzeRequest):
             detail="Please provide at least one API key (GPTZero or Originality.ai).",
         )
 
-    tasks: list[tuple[str, object]] = []
+    tasks: list[tuple[str, Coroutine[Any, Any, dict[str, Any]]]] = []
     if gptzero_api_key:
         tasks.append(("gptzero", check_gptzero(payload.text, api_key=gptzero_api_key)))
     if originality_api_key:
