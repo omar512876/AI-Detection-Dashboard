@@ -40,33 +40,33 @@ async def analyze(payload: AnalyzeRequest):
             detail="Please provide at least one API key (GPTZero or Originality.ai).",
         )
 
-    service_calls: list[tuple[str, Coroutine[Any, Any, dict[str, Any]]]] = []
+    pending_services: list[tuple[str, Coroutine[Any, Any, dict[str, Any]]]] = []
     if gptzero_api_key:
-        service_calls.append(
+        pending_services.append(
             ("gptzero", check_gptzero(payload.text, api_key=gptzero_api_key))
         )
     if originality_api_key:
-        service_calls.append(
+        pending_services.append(
             ("originality", check_originality(payload.text, api_key=originality_api_key))
         )
 
-    raw_results: dict[str, dict[str, Any]] = {}
-    if service_calls:
-        names = [name for name, _ in service_calls]
-        coroutines = [coroutine for _, coroutine in service_calls]
+    service_results: dict[str, dict[str, Any]] = {}
+    if pending_services:
+        names = [name for name, _ in pending_services]
+        coroutines = [coroutine for _, coroutine in pending_services]
         responses = await asyncio.gather(*coroutines, return_exceptions=True)
 
         for name, response in zip(names, responses):
             if name == "gptzero" and isinstance(response, (GPTZeroAPIError, Exception)):
-                raw_results[name] = {"error": "API failed"}
+                service_results[name] = {"error": "API failed"}
             elif name == "originality" and isinstance(
                 response, (OriginalityAPIError, Exception)
             ):
-                raw_results[name] = {"error": "API failed"}
+                service_results[name] = {"error": "API failed"}
             else:
-                raw_results[name] = response
+                service_results[name] = response
 
-    gptzero_result = raw_results.get("gptzero", {"error": "API key not provided"})
-    originality_result = raw_results.get("originality", {"error": "API key not provided"})
+    gptzero_result = service_results.get("gptzero", {"error": "API key not provided"})
+    originality_result = service_results.get("originality", {"error": "API key not provided"})
 
     return {"gptzero": gptzero_result, "originality": originality_result}
