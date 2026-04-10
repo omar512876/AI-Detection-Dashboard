@@ -143,9 +143,12 @@
                 });
 
                 if (!response.ok) {
-                    var errorData = await response.json().catch(function () {
-                        return null;
-                    });
+                    var errorData = null;
+                    try {
+                        errorData = await response.json();
+                    } catch (parseError) {
+                        console.error("Failed to parse error response:", parseError);
+                    }
                     var message = errorData && errorData.detail ? errorData.detail : "Request failed";
                     throw new Error(message);
                 }

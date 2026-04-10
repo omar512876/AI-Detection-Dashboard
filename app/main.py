@@ -40,20 +40,20 @@ async def analyze(payload: AnalyzeRequest):
             detail="Please provide at least one API key (GPTZero or Originality.AI).",
         )
 
-    services_to_execute: list[tuple[str, Coroutine[Any, Any, dict[str, Any]]]] = []
+    service_tasks: list[tuple[str, Coroutine[Any, Any, dict[str, Any]]]] = []
     if gptzero_api_key:
-        services_to_execute.append(
+        service_tasks.append(
             ("gptzero", check_gptzero(payload.text, api_key=gptzero_api_key))
         )
     if originality_api_key:
-        services_to_execute.append(
+        service_tasks.append(
             ("originality", check_originality(payload.text, api_key=originality_api_key))
         )
 
     service_results: dict[str, dict[str, Any]] = {}
-    if services_to_execute:
-        names = [name for name, _ in services_to_execute]
-        coroutines = [coroutine for _, coroutine in services_to_execute]
+    if service_tasks:
+        names = [name for name, _ in service_tasks]
+        coroutines = [coroutine for _, coroutine in service_tasks]
         responses = await asyncio.gather(*coroutines, return_exceptions=True)
 
         for name, response in zip(names, responses):
@@ -66,7 +66,11 @@ async def analyze(payload: AnalyzeRequest):
             else:
                 service_results[name] = response
 
-    gptzero_result = service_results.get("gptzero", {"error": "API key not provided"})
-    originality_result = service_results.get("originality", {"error": "API key not provided"})
+    gptzero_result = service_results.get(
+        "gptzero", {"error": "Not analyzed (no API key provided)"}
+    )
+    originality_result = service_results.get(
+        "originality", {"error": "Not analyzed (no API key provided)"}
+    )
 
     return {"gptzero": gptzero_result, "originality": originality_result}
