@@ -40,18 +40,20 @@ async def analyze(payload: AnalyzeRequest):
             detail="Please provide at least one API key (GPTZero or Originality.ai).",
         )
 
-    tasks: list[tuple[str, Coroutine[Any, Any, dict[str, Any]]]] = []
+    service_calls: list[tuple[str, Coroutine[Any, Any, dict[str, Any]]]] = []
     if gptzero_api_key:
-        tasks.append(("gptzero", check_gptzero(payload.text, api_key=gptzero_api_key)))
+        service_calls.append(
+            ("gptzero", check_gptzero(payload.text, api_key=gptzero_api_key))
+        )
     if originality_api_key:
-        tasks.append(
+        service_calls.append(
             ("originality", check_originality(payload.text, api_key=originality_api_key))
         )
 
-    raw_results: dict[str, dict] = {}
-    if tasks:
-        names = [name for name, _ in tasks]
-        coroutines = [coroutine for _, coroutine in tasks]
+    raw_results: dict[str, dict[str, Any]] = {}
+    if service_calls:
+        names = [name for name, _ in service_calls]
+        coroutines = [coroutine for _, coroutine in service_calls]
         responses = await asyncio.gather(*coroutines, return_exceptions=True)
 
         for name, response in zip(names, responses):
