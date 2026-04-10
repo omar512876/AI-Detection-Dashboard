@@ -36,7 +36,7 @@ def test_extract_score_raises_when_missing():
         (" mixed content ", "Mixed"),
         ("Human-written", "Likely Human"),
         (" mostly AI ", "Likely AI"),
-        ("uncertain verdict", "Uncertain Verdict"),
+        ("unknown verdict", "Unknown Verdict"),
     ],
 )
 def test_normalize_label(raw_label, expected):
