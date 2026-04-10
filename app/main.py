@@ -37,23 +37,23 @@ async def analyze(payload: AnalyzeRequest):
     if not gptzero_api_key and not originality_api_key:
         raise HTTPException(
             status_code=400,
-            detail="Please provide at least one API key (GPTZero or Originality.ai).",
+            detail="Please provide at least one API key (GPTZero or Originality.AI).",
         )
 
-    pending_services: list[tuple[str, Coroutine[Any, Any, dict[str, Any]]]] = []
+    services_to_execute: list[tuple[str, Coroutine[Any, Any, dict[str, Any]]]] = []
     if gptzero_api_key:
-        pending_services.append(
+        services_to_execute.append(
             ("gptzero", check_gptzero(payload.text, api_key=gptzero_api_key))
         )
     if originality_api_key:
-        pending_services.append(
+        services_to_execute.append(
             ("originality", check_originality(payload.text, api_key=originality_api_key))
         )
 
     service_results: dict[str, dict[str, Any]] = {}
-    if pending_services:
-        names = [name for name, _ in pending_services]
-        coroutines = [coroutine for _, coroutine in pending_services]
+    if services_to_execute:
+        names = [name for name, _ in services_to_execute]
+        coroutines = [coroutine for _, coroutine in services_to_execute]
         responses = await asyncio.gather(*coroutines, return_exceptions=True)
 
         for name, response in zip(names, responses):

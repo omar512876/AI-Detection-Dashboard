@@ -12,11 +12,11 @@
         <p class="subtitle">Paste your text below to detect likely AI-generated content.</p>
 
         <form id="analyze-form">
-            <label for="gptzero-api-key">GPTZero API Key (provide this or Originality.ai)</label>
+            <label for="gptzero-api-key">GPTZero API Key (provide this or Originality.AI)</label>
             <input id="gptzero-api-key" name="gptzero_api_key" type="password" placeholder="Enter GPTZero API key">
 
-            <label for="originality-api-key">Originality.ai API Key (provide this or GPTZero)</label>
-            <input id="originality-api-key" name="originality_api_key" type="password" placeholder="Enter Originality.ai API key">
+            <label for="originality-api-key">Originality.AI API Key (provide this or GPTZero)</label>
+            <input id="originality-api-key" name="originality_api_key" type="password" placeholder="Enter Originality.AI API key">
 
             <label for="input-text" class="sr-only">Text to analyze</label>
             <textarea id="input-text" name="text" rows="10" placeholder="Paste your text here..."></textarea>
@@ -94,7 +94,7 @@
         function renderResults(data) {
             result.innerHTML = "";
             result.appendChild(buildDetectorCard("GPTZero", data.gptzero));
-            result.appendChild(buildDetectorCard("Originality.ai", data.originality));
+            result.appendChild(buildDetectorCard("Originality.AI", data.originality));
             result.classList.add("visible");
         }
 
@@ -120,7 +120,7 @@
             if (!gptzeroApiKey && !originalityApiKey) {
                 result.innerHTML = "";
                 result.classList.remove("visible");
-                showFeedback("Please provide at least one API key (GPTZero or Originality.ai).", "error");
+                showFeedback("Please provide at least one API key (GPTZero or Originality.AI).", "error");
                 return;
             }
 
